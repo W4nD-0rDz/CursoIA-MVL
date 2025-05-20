@@ -95,12 +95,12 @@ print("Barrios que superan la media de familias")
 print(resultado)"""
 
 #Eliminar un campo
-renabapSinIndex = renabap.drop("fid", axis=1)
-print(renabapSinIndex)
+"""renabapSinIndex = renabap.drop("fid", axis=1)
+print(renabapSinIndex)"""
 #Eliminar un campo según condición
-renabapCabaSinComuna1 = renabap[renabap.Departamen != "Comuna 1"]
+"""renabapCabaSinComuna1 = renabap[renabap.Departamen != "Comuna 1"]
 renabapCabaComuna1 = renabap[renabap.Departamen == "Comuna 1"]
-print(renabapCabaComuna1[["id_renabap", "Barrio", "Familias"]].to_markdown(index=False))
+print(renabapCabaComuna1[["id_renabap", "Barrio", "Familias"]].to_markdown(index=False))"""
 #Seleccionar ciertos campos
 """renabapSoloServicios = renabap[["id_renabap", "Barrio", "Familias", "Electricidad", "Agua", "Cloacas"]]
 for row in renabapSoloServicios.iterrows():
