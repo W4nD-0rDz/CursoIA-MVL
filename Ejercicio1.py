@@ -29,7 +29,7 @@ def verColumnas1_2():
         print(f'N° {row["pos"]}: {row["jugador"].capitalize()}')
 def verJugador(id):
     # Filtra el DataFrame para encontrar la fila donde la posición coincida
-    jugador = nba[nba["pos"] == int(id)]  # Asegúrate de que 'id' sea tratado como un número entero
+    jugador = nba[nba["pos"] == int(id)]
     if not jugador.empty:
         # Imprime los datos de la fila, mostrando la posición, jugador y puntos
         print(f"Posición: {jugador['pos'].values[0]}, Jugador: {jugador['jugador'].values[0].capitalize()}, Puntos: {jugador['puntos'].values[0]}")
