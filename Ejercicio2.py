@@ -11,6 +11,7 @@ Desarrollar un programa que le pida un usuario una palabra de cuatro letras
 #Forma de mutación: mutación adaptativa o heurística basada en frecuencia
 
 import random
+import statistics as st
 from collections import Counter
 from fuzzywuzzy import fuzz
 
@@ -40,7 +41,7 @@ class wordGesser:
         return False
     
     def validarPalabra(self):
-        for palabra, _, _ in self.generacion:
+        for palabra, _ in self.generacion:
             if palabra == self.palabraTarget:
                 return True
         return False
@@ -54,7 +55,7 @@ class wordGesser:
             print("Palabra inválida. Intentá nuevamente.")
 
     def generarPalabra(self):
-        if self.ciclo == 0 or self.evaluarGeneracion(self.generacion) < 0.25:
+        if self.ciclo == 0 or self.evaluarGeneracion() < 0.25:
             return ''.join(random.choice(self.abecedario) for _ in range(len(self.palabraTarget)))
         else:
             return ''.join(
@@ -70,22 +71,17 @@ class wordGesser:
     def construirGeneracion(self):
         self.generacion = []
         for palabra in self.listaPalabras:
-            puntajeLetras = fuzz.ratio(self.palabraTarget, palabra) / 100.0
-            puntajeOrden = sum(c == o for c, o in zip(palabra, self.palabraTarget)) / self.longPalabra
-            self.generacion.append((palabra, puntajeLetras, puntajeOrden))
+            puntaje = self.evaluarPalabra(palabra)
+            self.generacion.append((palabra, puntaje))
         
     def seleccionarMejores(self):
-        if self.ciclo < self.limCiclos/5:
-            pondLetras, pondOrden = 1, 1
-        else:
-            pondLetras, pondOrden = 1, 4
-        umbral = self.evaluarGeneracion(self.generacion)
+        umbral = self.evaluarGeneracion()
         puntuados = sorted(
             self.generacion,
-            key=lambda x: pondLetras * x[1] + pondOrden *x[2],
+            key=lambda x: x[1],
             reverse=True
         )
-        puntuadosFiltrados = [p for p in puntuados if (pondLetras * p[1] + pondOrden * p[2]) >= umbral]
+        puntuadosFiltrados = [p for p in puntuados if p[1] >= umbral]
         if len(puntuadosFiltrados) < self.tamGeneracion // 2:
             puntuadosFiltrados = puntuados[:self.tamGeneracion]
 
@@ -95,14 +91,25 @@ class wordGesser:
         palabrasSeleccionadas = mejores + resto
         self.listaPalabras = [p[0] for p in palabrasSeleccionadas[:self.tamGeneracion]]
 
-    def evaluarGeneracion(self, generacion):
-        # if self.ciclo < self.limCiclos / 5:
-        #     pondLetras, pondOrden = 1, 1
-        # else:
-        #     pondLetras, pondOrden = 1, 4
-        suma = sum(p[1] + p[2] for p in generacion)
-        promedio = suma / len(self.generacion)
-        return promedio
+    def evaluarPalabra(self, palabra):
+        puntos = 0
+        letrasTarget = list(self.palabraTarget)
+        letrasCandidata = list(palabra)
+        for i in range(self.longPalabra):
+            if letrasCandidata[i] == letrasTarget[i]:
+                puntos += 1
+                letrasTarget[i] = None
+                letrasCandidata[i] = None
+        for i in range(self.longPalabra):
+            if letrasCandidata[i] is not None and letrasCandidata[i] in letrasTarget:
+                puntos += 0.5
+                idx = letrasTarget.index(letrasCandidata[i])
+                letrasTarget[idx] = None
+        return puntos
+
+    def evaluarGeneracion(self):
+        puntajes = [p[1] for p in self.generacion]
+        return st.mean(puntajes) if puntajes else 0
 
     def cargarAbecedarioPon(self):
         todasLetras = "".join(self.listaPalabras)
@@ -127,14 +134,13 @@ class wordGesser:
                 abecedario_gen = self.historialAbecedarios[i-1]  
                 resumen = Counter(abecedario_gen)
                 salida += f"\n   🔤 Abecedario Ponderado: {dict(sorted(resumen.items()))}"
-            promedio = self.evaluarGeneracion(generacion)
+            promedio = self.evaluarGeneracion()
             salida += f"\n   📊 Promedio de la generación: {promedio:.2f}"
-            for palabra, puntajeLetras, puntajeOrden in generacion:
-                total = puntajeLetras + puntajeOrden
-                if total > promedio:
-                    salida += f"\n   - {BOLD}{palabra}{RESET} | Puntaje por Letra: {puntajeLetras} | Puntaje por Posición: {puntajeOrden}"
+            for palabra, puntaje in generacion:
+                if puntaje > promedio:
+                    salida += f"\n   - {BOLD}{palabra}{RESET} | Puntaje: {puntaje}"
                 else:
-                    salida += f"\n   - {palabra} | Puntaje por Letra: {puntajeLetras} | Puntaje por Posición: {puntajeOrden}"
+                    salida += f"\n   - {palabra} | Puntaje: {puntaje}"
         return salida                
 
     def jugar(self):
