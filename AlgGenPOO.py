@@ -35,7 +35,7 @@ class Individuo:
         hijo = Individuo.__new__(Individuo)
         hijo.fuerza = random.choice([madre.fuerza, padre.fuerza])
         hijo.inteligencia = random.choice([madre.inteligencia, padre.inteligencia])
-        hijo.velocidad = random.choice([madre.velocidad, padre.velocidad])
+        hijo.velocidad = random.randint(1, 3)  #la velocidad muta aleatoriamente
         hijo.actualizarAptitud()
         return hijo
 
@@ -122,7 +122,7 @@ def reproducir(tamano, poblacion):
         aptitudes = [madre.aptitud, padre.aptitud, individuo.aptitud]
 
         if st.stdev(aptitudes) < 0.75:
-            if st.mean([difP1, difP2]) < 0.9:
+            if st.mean([difP1, difP2]) < 0.50:
                 individuo.mutar()
         generacion.append(individuo)
     return generacion

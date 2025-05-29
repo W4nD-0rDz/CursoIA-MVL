@@ -1,6 +1,7 @@
-"""Un algoritmo genético (AG) es un tipo de algoritmo de búsqueda y optimización inspirado en la evolución biológica. 
-Su objetivo es encontrar soluciones aproximadas a problemas complejos, imitando el proceso de selección natural: 
-los mejores sobreviven, se reproducen, y sus "hijos" (nuevas soluciones) se prueban a ver si mejoran."""
+"""Un algoritmo genético (AG) es un tipo de algoritmo de búsqueda y optimización inspirado en la 
+evolución biológica. Su objetivo es encontrar soluciones aproximadas a problemas complejos, 
+imitando el proceso de selección natural: los mejores, los más aptos, sobreviven, se reproducen, y sus "hijos" 
+(nuevas soluciones) se prueban a ver si mejoran."""
 
 # 🧬 ¿Cómo funciona un algoritmo genético?
 # 1. Inicialización: Se genera una población inicial aleatoria de posibles soluciones.
@@ -18,7 +19,6 @@ for i in range(poblacion):
     aptitud = fuerza + intel + vel
     individuo = [fuerza, intel, vel, aptitud]
     individuos.append(individuo)
-
 print("Primera generación:", individuos)
 
 # 2. Evaluación (aptitud): Se mide qué tan buena es cada solución con una función de aptitud (fitness).
@@ -41,9 +41,9 @@ def heredar():
     global individuos
     individuos = []
     for i in range(poblacion):
-        fuerza = seleccionados[random.randint(0, 1)][0]
+        fuerza = random.choice([seleccionados[0][0], seleccionados[1][0]])
         intel = seleccionados[random.randint(0, 1)][1]
-        vel = random.randint(1, 3)  # se puede mutar la velocidad
+        vel = random.randint(1, 3)  #la velocidad muta aleatoriamente
         aptitud = fuerza + intel + vel
         individuo = [fuerza, intel, vel, aptitud]
         individuos.append(individuo)
@@ -63,6 +63,3 @@ for i in individuos:
         indice = individuos.index(i)
 
 print("Mejor individuo final:", individuos[indice])
-
-
-
