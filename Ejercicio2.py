@@ -41,7 +41,7 @@ class wordGesser:
         return False
     
     def validarPalabra(self):
-        for palabra, _ in self.generacion:
+        for palabra, _, _, _, _ in self.generacion:
             if palabra == self.palabraTarget:
                 return True
         return False
@@ -71,45 +71,52 @@ class wordGesser:
     def construirGeneracion(self):
         self.generacion = []
         for palabra in self.listaPalabras:
-            puntaje = self.evaluarPalabra(palabra)
-            self.generacion.append((palabra, puntaje))
+            puntajeLista = self.evaluarPalabraPosicional(palabra)
+            puntajeFuzzy = self.evaluarPalabraFuzzy(palabra)
+            puntajeTotal = sum(puntajeLista)
+            scoring = float((0.7 * puntajeTotal) + (0.3 * ((puntajeFuzzy / 100) * (self.longPalabra * 2))))
+            self.generacion.append({
+                "Palabra": palabra,
+                "PuntajeLista": puntajeLista,
+                "PuntajeTotal": puntajeTotal,
+                "Fuzzy": puntajeFuzzy,
+                "Scoring": scoring
+            })
         
+    def evaluarPalabraFuzzy(self, palabra):
+        return fuzz.ratio(palabra, self.palabraTarget)
+    
+    def evaluarPalabraPosicional(self, palabra):
+        puntajes = []
+        for i in range(len(self.palabraTarget)):
+            letra = palabra[i]
+            if letra == self.palabraTarget[i]:
+                puntajes.append(2)
+            elif letra in self.palabraTarget:
+                puntajes.append(1)
+            else:
+                puntajes.append(0)
+        return puntajes
+
+    def evaluarGeneracion(self):
+        puntajes = [p["Scoring"] for p in self.generacion]
+        return st.mean(puntajes) if puntajes else 0
+    
     def seleccionarMejores(self):
         umbral = self.evaluarGeneracion()
         puntuados = sorted(
             self.generacion,
-            key=lambda x: x[1],
+            key=lambda x: x["Scoring"],
             reverse=True
         )
-        puntuadosFiltrados = [p for p in puntuados if p[1] >= umbral]
+        puntuadosFiltrados = [p for p in puntuados if p["Scoring"] >= umbral]
         if len(puntuadosFiltrados) < self.tamGeneracion // 2:
             puntuadosFiltrados = puntuados[:self.tamGeneracion]
-
-        mejores = [p[0] for p in puntuadosFiltrados[:self.tamGeneracion//5]]
-        resto = [p[0] for p in puntuadosFiltrados[self.tamGeneracion//3:]]
+        mejores = [p["Palabra"] for p in puntuadosFiltrados[:self.tamGeneracion//5]]
+        resto = [p["Palabra"] for p in puntuadosFiltrados[self.tamGeneracion//3:]]
         random.shuffle(resto)
         palabrasSeleccionadas = mejores + resto
         self.listaPalabras = [p[0] for p in palabrasSeleccionadas[:self.tamGeneracion]]
-
-    def evaluarPalabra(self, palabra):
-        puntos = 0
-        letrasTarget = list(self.palabraTarget)
-        letrasCandidata = list(palabra)
-        for i in range(self.longPalabra):
-            if letrasCandidata[i] == letrasTarget[i]:
-                puntos += 1
-                letrasTarget[i] = None
-                letrasCandidata[i] = None
-        for i in range(self.longPalabra):
-            if letrasCandidata[i] is not None and letrasCandidata[i] in letrasTarget:
-                puntos += 0.5
-                idx = letrasTarget.index(letrasCandidata[i])
-                letrasTarget[idx] = None
-        return puntos
-
-    def evaluarGeneracion(self):
-        puntajes = [p[1] for p in self.generacion]
-        return st.mean(puntajes) if puntajes else 0
 
     def cargarAbecedarioPon(self):
         todasLetras = "".join(self.listaPalabras)
@@ -134,13 +141,13 @@ class wordGesser:
                 abecedario_gen = self.historialAbecedarios[i-1]  
                 resumen = Counter(abecedario_gen)
                 salida += f"\n   🔤 Abecedario Ponderado: {dict(sorted(resumen.items()))}"
-            promedio = self.evaluarGeneracion()
+            promedio = float(self.evaluarGeneracion())
             salida += f"\n   📊 Promedio de la generación: {promedio:.2f}"
-            for palabra, puntaje in generacion:
-                if puntaje > promedio:
-                    salida += f"\n   - {BOLD}{palabra}{RESET} | Puntaje: {puntaje}"
+            for palabra, puntajeLista, puntajeTotal, puntajeFuzzy, scoring in generacion:
+                if float(scoring) > promedio:
+                    salida += f"\n   - {BOLD}{palabra}{RESET} | Puntaje: {scoring:.2f}"
                 else:
-                    salida += f"\n   - {palabra} | Puntaje: {puntaje}"
+                    salida += f"\n   - {palabra} | Puntaje: {scoring:.2f}"
         return salida                
 
     def jugar(self):
