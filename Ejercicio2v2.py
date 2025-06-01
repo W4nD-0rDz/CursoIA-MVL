@@ -8,8 +8,7 @@ Desarrollar un programa que le pida un usuario una palabra de cuatro letras
     En caso que ingrese un largo incorrecto pedírselo nuevamente.
 5. Desarrollar el algoritmo genético para intentar acercarse lo más posible al resultado.
 """
-#Forma de mutación: mutación adaptativa o heurística basada en frecuencia
-
+#Forma de mutación: mutación adaptativa
 import random
 import statistics as st
 from collections import Counter
@@ -42,19 +41,18 @@ class wordGesser:
                     break
             print("Palabra inválida. Intentá nuevamente.")
     
-    def cargarAbecedarioPonderado(self, generacion):
+    def cargarAbecedarioPonderado(self):
         #Ver de agregar las letras de las palabras con un fuzzy distinto de 0 (al menos en el ciclo 1 a 3)
-        self.mejoresPalabras.extend(self.seleccionarPalabras(generacion))
         todasLetras=''
         listaPalabras=[]
-        for tupla in self.mejoresPalabras:
+        for tupla in self.palabrasSeleccionadas:
             diccionario = tupla[0]
             palabra = list(diccionario.keys())[0]#extrae las palabras del diccionario
             listaPalabras.append(palabra)
         todasLetras = "".join(listaPalabras)
         for letra, frecuencia in Counter(todasLetras).items():
-            if frecuencia > 3: #la misma letra tantas veces como aparece en las palabras seleccionadas
-                self.abecedarioPonderado.extend([letra] * frecuencia)
+            if frecuencia > 3: 
+                self.abecedarioPonderado.extend([letra] * frecuencia) #la misma letra tantas veces como aparece en las palabras seleccionadas
 
 #METODOS DE EVALUACION
     def verificarExistencia(self, tupla):
@@ -72,41 +70,33 @@ class wordGesser:
                 code.append(0)
         return code
     
-    def evaluarCodeEnTupla(tupla):
+    def evaluarCodeEnTupla(self, tupla):
         diccionario = tupla[0]
-        code = list(diccionario.values())
+        code = list(diccionario.values())[0]
         return sum(code)
     
-    def evaluarFuzzyEnGeneracion(self, generacion):
-        #fuzzy 0-100, entonces si hay 1 letra de 4 da 25.
-        listaFuzzy = [tupla[1] for tupla in generacion]
-        #tamaño de la generación = 10
+    def evaluarFuzzyEnGeneracion(self):
+        listaFuzzy = [tupla[1] for tupla in self.generacion]
         return st.mean(listaFuzzy)
-    
-    # def evaluarPosicion(self, tupla):
-    #     sumaLetrasOk = 0
-    #     diccionario = tupla[0]
-    #     palabra = list(diccionario.keys())[0]
-    #     code = diccionario[palabra]
-    #     sumaLetrasOk += sum(code)
-    #     return sumaLetrasOk
-    
+        
 #METODOS DE GENERACION DE PALABRAS    
-    def generarPalabraAleatoria(self):
-        for _ in range(self.longPalabra):
-            return ''.join(random.choice(self.abecedario))
+    def generarPalabraAleatoria(self, cantidad):
+        return [
+            ''.join(random.choice(self.abecedario) for _ in range(self.longPalabra))
+            for _ in range(int(cantidad))
+        ]
         
     def generarPalabraPonderada(self, cantidad):
         palabrasPonderadas = []
         #Ordenar las palabrasSeleccionadas por la cantidad de 1 en el code
         self.palabrasSeleccionadas.sort(key=self.evaluarCodeEnTupla, reverse=True)
 
-        while len(palabrasPonderadas) < cantidad:
+        while len(palabrasPonderadas) < int(cantidad):
             for tupla in self.palabrasSeleccionadas:
                 diccionario = tupla[0]
                 palabra = list(diccionario.keys())[0]
                 code = list(diccionario.values())[0]
-
+                
                 letrasResultantes = []
                 for i, flag in enumerate(code):
                     if flag == 1:
@@ -120,9 +110,9 @@ class wordGesser:
                         palabraTemporal.append(letra)
                     else:
                         if self.abecedarioPonderado:
-                            letrasResultantes[i] = random.choice(self.abecedarioPonderado)
+                            palabraTemporal.append(random.choice(self.abecedarioPonderado))
                         else:
-                            letrasResultantes[i] = random.choice(self.abecedario)
+                            palabraTemporal.append(random.choice(self.abecedario))
 
                 palabraPonderada = "".join(palabraTemporal)
                 palabrasPonderadas.append(palabraPonderada)
@@ -131,102 +121,116 @@ class wordGesser:
         return palabrasPonderadas
 
     def generarPalabraWordle(self, cantidad):
+
         palabrasWordle = []
         letrasFijas = [None] * self.longPalabra
-        while len(palabrasWordle) <= cantidad:
-            for tupla in self.mejoresPalabras:
-                diccionario = tupla[0]
-                palabra = list(diccionario.keys())[0]
-                code = list(diccionario.values())[0]
+        
+        for tupla in self.mejoresPalabras:
+            diccionario = tupla[0]
+            palabra = list(diccionario.keys())[0]
+            code = list(diccionario.values())[0]
 
-                for i, flag in enumerate(code):
-                    if flag == 1:
-                        if letrasFijas[i] is None:
-                            letrasFijas[i] = palabra[i]
-                
-                for _ in range(self.tamGeneracion//4): #Proporción de la generación de mutación Wordle
-                    letrasWordle = []
-                    palabraWordle = ""
-                    for i in range(self.longPalabra):
-                        if letrasFijas[i] is not None:
-                            letrasWordle.append(letrasFijas[i])
-                        else:
-                            if self.abecedarioPonderado and random.random() < 0.7:
-                                letrasWordle.append(random.choice(self.abecedarioPonderado))
-                            else:
-                                letrasWordle.append(random.choice(self.abecedario))
-                    palabraWordle = "".join(letrasWordle)
-                    palabrasWordle.append(palabraWordle)            
+            for i, flag in enumerate(code):
+                if flag == 1:
+                    if letrasFijas[i] is None:
+                        letrasFijas[i] = palabra[i]
+        while len(palabrasWordle) < int(cantidad):
+            letras = []
+            for i in range(self.longPalabra):
+                if letrasFijas[i] is not None:
+                    letras.append(letrasFijas[i])
+                elif self.abecedarioPonderado and random.random() < 0.7:
+                    letras.append(random.choice(self.abecedarioPonderado))
+                else:
+                    letras.append(random.choice(self.abecedario))
+            palabra = "".join(letras)
+            palabrasWordle.append(palabra)
+
         return palabrasWordle
+    
+    def generarPalabras(self, variables):
+        aleatoria = int(self.tamGeneracion * variables["aleatoria"])
+        ponderada = int(self.tamGeneracion * variables["ponderada"])
+        wordle = int(self.tamGeneracion * variables["wordle"])
 
-    # def generarPalabra(self,palabraTupla,fuente):
-    #     #palabras sin antecesores
-    #     if not palabraTupla:
-    #             return ''.join(random.choice(fuente) for _ in range(self.longPalabra))
-    #     #palabras con antecesores, mutación guiada (x medio de abecedarioPonderado)
-    #     elif palabra:
-    #         diccionario = palabraTupla[0]
-    #         palabra = list(diccionario.keys())[0]
-    #         code = diccionario[palabra]
-    #         intento=''
-    #         for i in range(len(code)):
-    #             if code[i] == 1:
-    #                 intento += palabra[i]
-    #             else:
-    #                 intento += random.choice(random.shuffle(fuente))
-    #         return intento
+        #Por si falta alguna palabra:
+        total = aleatoria + ponderada + wordle
+        diferencia = self.tamGeneracion - total
+        aleatoria += diferencia
+
+        listaPalabrasAleatorias = self.generarPalabraAleatoria(aleatoria)
+        listaPalabrasPonderadas = self.generarPalabraPonderada(ponderada)
+        listaPalabrasWordle = self.generarPalabraWordle(wordle)
+
+        listaPalabras = listaPalabrasAleatorias + listaPalabrasPonderadas + listaPalabrasWordle
+        self.listaPalabras = listaPalabras
 
 #METODOS DE ALMACENAJE
-    def llenarListaPalabras(self):
-        if self.ciclo == 0:
-            fuente = self.abecedario
-        elif self.ciclo > 0 and self.mejoresPalabras:
-            fuente = self.abecedarioPonderado
-            for palabraTupla in self.mejoresPalabras:
-                self.listaPalabras.extend([self.generarPalabra(palabraTupla,fuente) for _ in range(self.tamGeneracion)])
-        elif self.ciclo > 0 and not self.mejoresPalabras:
-            self.listaPalabras = [self.generarPalabra(palabraTupla,fuente) for _ in range(self.tamGeneracion)]
-    
-    def generarTuplas(self, listaPalabras):
+    def generarTuplas(self):
         tuplas = []
-        for palabra in listaPalabras:
-            code = self.evaluarPosicion(palabra)
-            fuzzyIndex = self.evaluarFuzzy(palabra)
-            palabraDiccionario = {palabra:code}
+        for palabra in self.listaPalabras:
+            code = self.analizarPosicion(palabra)
+            fuzzyIndex = self.evaluarFuzzyEnPalabra(palabra)
+            palabraDiccionario = {palabra: code}
+
             palabraTupla = (palabraDiccionario, fuzzyIndex)
             tuplas.append(palabraTupla)
         return tuplas
     
-    def almacenarTuplas(self,tuplas):
-        self.generacion.extend(tuplas)
-
-    def almacenarGeneracion(self, generacion):
-        self.historial.extend(generacion)
+    def almacenarTuplas(self):
+        self.generacion = self.generarTuplas()
+        
+    def almacenarGeneracion(self):
+        self.historial.append(self.generacion)
+        self.fuzzyIndexGeneracion.append(self.evaluarFuzzyEnGeneracion())
 
 #METODOS DE SELECCION
-    def ponderarPalabras(self, generacion):
-        candidatas = [tupla for tupla in generacion if tupla[1] >= self.evaluarFuzzy(generacion)] # 1. Ver cuántas palabras tienen FuzzyIndex ≥ promedio de la generación
-        palabrasSeleccionadas = sorted(
+    def ponderarPalabras(self):
+        promedio = self.evaluarFuzzyEnGeneracion()
+        candidatas = [tupla for tupla in self.generacion if tupla[1] >= promedio] # 1. almacena solo las que tienen FuzzyIndex ≥ promedio de la generación
+        palabrasPonderadas = sorted(
             candidatas,
             key=lambda x: (sum(list(x[0].values())[0])),  # 2. ordenarlas según la cantidad de 1s en code
             reverse=True
         )
-        self.palabrasSeleccionadas.extend(palabrasSeleccionadas) # Las almacena en la lista de palabrasSeleccionadas
+        self.palabrasSeleccionadas.extend(palabrasPonderadas) # Las almacena en la lista de palabrasSeleccionadas
         
-    def seleccionarPalabras(self, generacion):
-        candidatas = [tupla for tupla in generacion if self.evaluarCodeEnTupla(tupla) >= 1] # 1. Si tiene una o más letras en la posición correcta
+    def seleccionarPalabras(self):
+        candidatas = [tupla for tupla in self.generacion if self.evaluarCodeEnTupla(tupla) >= 1] # 1. Si tiene una o más letras en la posición correcta
         mejoresPalabras = sorted(
             candidatas,
             key=lambda x: (sum(list(x[0].values())[0])),  # 2. ordenarlas según la cantidad de 1s en code
             reverse=True
         )
-        
         for tupla in mejoresPalabras:
             if self.verificarExistencia(tupla): # Agregar solo las palabras que no estén ya en self.palabrasSeleccionadas
-                self.mejoresPalabras.extend(tupla) # Las almacena en la lista de palabrasSeleccionadas
+                self.mejoresPalabras.append(tupla) # Las almacena en la lista de palabrasSeleccionadas
+
+#METODOS DE MUESTRA/IMPRESION
+    def __str__(self):
+            BOLD = "\033[1m"
+            RESET = "\033[0m"
+            salida = "\n📜 HISTORIAL COMPLETO DE GENERACIONES:"
+
+            for i, generacion in enumerate(self.historial):
+                salida += f"\n🌀 Generación {i+1}:"
+                promedio = float(self.fuzzyIndexGeneracion[i])
+                salida += f"\n   📊 Promedio de la generación: {promedio:.2f}"
+                generacionOrdenada = sorted(generacion, key=lambda t:t[1], reverse=True)
+
+                for tupla in generacionOrdenada:
+                    diccionario = tupla[0]
+                    palabra = next(iter(diccionario)) #Hace lo mismo que: list(diccionario.keys())[0]
+                    scoring = self.evaluarCodeEnTupla(tupla)
+                    fuzzyIndex = tupla[1]
+                    if scoring >= 1:
+                        salida += f"\n  - {BOLD}{palabra}{RESET} | Code: {scoring} | Fuzzy: {fuzzyIndex:.2f}"
+                    else:
+                        salida += f"\n  - {palabra} | Code: {scoring} | Fuzzy: {fuzzyIndex:.2f}"
+            return salida                
 
 #METODOS DE JUEGO Y ADAPTACION
-    def controlador(self):
+    def controlar(self):
         """
         Retorna un diccionario con la proporción de uso de cada estrategia
         basada en el ciclo actual, el progreso de fuzzyIndex y mejoresPalabras.
@@ -239,7 +243,7 @@ class wordGesser:
 
         fuzzy_actual = self.fuzzyIndexGeneracion[-1] if self.fuzzyIndexGeneracion else 0
         fuzzy_anterior = self.fuzzyIndexGeneracion[-2] if len(self.fuzzyIndexGeneracion) > 1 else 0
-        cantidad_mejores = len(self.mejoresPalabras)
+        cantidadMejores = len(self.mejoresPalabras)
 
         # Ciclo 1
         if self.ciclo == 1:
@@ -247,14 +251,16 @@ class wordGesser:
                 return { 
                     "aleatoria": 1.0, "ponderada": 0.0, "wordle": 0.0
                 }
-            elif cantidad_mejores >= 1:
+            elif cantidadMejores >= 1:
                 return {
                     "aleatoria": 0.75, "ponderada": 0.15, "wordle": 0.10
                 }
 
         # Ciclos posteriores
-        if fuzzy_actual > fuzzy_anterior:
-            if cantidad_mejores == len(set(self.mejoresPalabras)):
+        if fuzzy_actual > fuzzy_anterior: #Si mejora el fuzzy.ratio de la generacion
+            cantidadMejoresPalabras = len(self.mejoresPalabras)
+            cantidadPalabrasUnicas = len(set([list(tupla[0].keys())[0] for tupla in self.mejoresPalabras]))
+            if cantidadMejoresPalabras == cantidadPalabrasUnicas:
                 # Aumenta el fuzzyIndex, pero no crecen los buenos resultados
                 return {
                     "aleatoria": 0.65, "ponderada": 0.25, "wordle": 0.10
@@ -272,15 +278,33 @@ class wordGesser:
 
     def jugar(self):
         print("🎯 BIENVENIDO AL JUEGO DE ADIVINAR LA PALABRA 🎯")
-        # 1. Pedir el ingreso de la palabra objetivo
         self.ingresarPalabra()  
-        # 2. Inicializar ciclo y limpiar historial
         self.ciclo = 0
-        self.historial = []
+        
+        while self.ciclo < self.limCiclos:
+            variables = self.controlar()
+            self.generarPalabras(variables)
+            self.almacenarTuplas()
+            self.almacenarGeneracion()
+            self.ponderarPalabras()
+            self.seleccionarPalabras()
+            self.cargarAbecedarioPonderado()
+            palabrasGeneradas = [list(t[0].keys())[0] for t in self.generacion]
+            if self.palabraTarget in palabrasGeneradas:
+                print(f"\n🎉 ¡La palabra {self.palabraTarget.upper()} fue adivinada en el ciclo {self.ciclo + 1}!")
+                print("Promedios FUZZY por generación: ", self.fuzzyIndexGeneracion)
+                break
+                
+            self.ciclo += 1
+
+        else:
+            print(f"\n🧪 Se alcanzó el límite de ciclos. La palabra era: {self.palabraTarget.upper()}")
+
+        # Mostrar resumen final
+        print(self)
 
 ###########################################################################################
 # FIN DE LA CLASE #
 ###########################################################################################
 juego = wordGesser()
 juego.jugar()
-        
