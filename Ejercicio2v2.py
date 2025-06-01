@@ -13,6 +13,8 @@ import random
 import statistics as st
 from collections import Counter
 from fuzzywuzzy import fuzz
+import pandas as pd
+import matplotlib.pyplot as plt
 
 class wordGesser:
     def __init__(self):
@@ -30,6 +32,7 @@ class wordGesser:
         self.generacion = [] #acumula (lista de tuplas que contienen: ({palabra:[c,o,d,e]}, FuzzyIndex) (una vez generada no se modifica)
         self.palabrasSeleccionadas = [] #lista de tuplas ({"palabra":[c,o,d,e]}, FuzzyIndex) seleccionadas en función de 1. FuzzyIndex > 25
         self.mejoresPalabras = [] #lista de tuplas ({"palabra":[c,o,d,e]}, FuzzyIndex) seleccionadas en función de 1. FuzzyIndex > 25 y 2. code (si contiene 1)
+        self.resumenEstadistico = []
 
 #METODOS INICIALES
     def ingresarPalabra(self): 
@@ -183,6 +186,11 @@ class wordGesser:
     def almacenarGeneracion(self):
         self.historial.append(self.generacion)
         self.fuzzyIndexGeneracion.append(self.evaluarFuzzyEnGeneracion())
+    
+    def registrar(self, cantidad1, cantidad2):
+        cantidadPalabrasNuevas = cantidad1 - cantidad2
+        fuzzyIndex = self.evaluarFuzzyEnGeneracion()
+        self.resumenEstadistico.append((fuzzyIndex, cantidadPalabrasNuevas))
 
 #METODOS DE SELECCION
     def ponderarPalabras(self):
@@ -196,6 +204,7 @@ class wordGesser:
         self.palabrasSeleccionadas.extend(palabrasPonderadas) # Las almacena en la lista de palabrasSeleccionadas
         
     def seleccionarPalabras(self):
+        cantidadPrevia = len(self.mejoresPalabras)
         candidatas = [tupla for tupla in self.generacion if self.evaluarCodeEnTupla(tupla) >= 1] # 1. Si tiene una o más letras en la posición correcta
         mejoresPalabras = sorted(
             candidatas,
@@ -205,41 +214,67 @@ class wordGesser:
         for tupla in mejoresPalabras:
             if self.verificarExistencia(tupla): # Agregar solo las palabras que no estén ya en self.palabrasSeleccionadas
                 self.mejoresPalabras.append(tupla) # Las almacena en la lista de palabrasSeleccionadas
+        cantidadActual = len(self.mejoresPalabras)
 
+        #Datos para la estadística
+        self.registrar(cantidadActual, cantidadPrevia)
+           
 #METODOS DE MUESTRA/IMPRESION
     def __str__(self):
-            BOLD = "\033[1m"
-            RESET = "\033[0m"
-            salida = "\n📜 HISTORIAL COMPLETO DE GENERACIONES:"
+        BOLD = "\033[1m"
+        RESET = "\033[0m"
+        salida = "\n📜 HISTORIAL COMPLETO DE GENERACIONES:"
 
-            for i, generacion in enumerate(self.historial):
-                salida += f"\n🌀 Generación {i+1}:"
-                promedio = float(self.fuzzyIndexGeneracion[i])
-                salida += f"\n   📊 Promedio de la generación: {promedio:.2f}"
-                generacionOrdenada = sorted(generacion, key=lambda t:t[1], reverse=True)
+        for i, generacion in enumerate(self.historial):
+            salida += f"\n🌀 Generación {i+1}:"
+            promedio = float(self.fuzzyIndexGeneracion[i])
+            salida += f"\n   📊 Promedio de la generación: {promedio:.2f}"
+            generacionOrdenada = sorted(generacion, key=lambda t:t[1], reverse=True)
 
-                for tupla in generacionOrdenada:
-                    diccionario = tupla[0]
-                    palabra = next(iter(diccionario)) #Hace lo mismo que: list(diccionario.keys())[0]
-                    scoring = self.evaluarCodeEnTupla(tupla)
-                    fuzzyIndex = tupla[1]
-                    if scoring >= 1:
-                        salida += f"\n  - {BOLD}{palabra}{RESET} | Code: {scoring} | Fuzzy: {fuzzyIndex:.2f}"
-                    else:
-                        salida += f"\n  - {palabra} | Code: {scoring} | Fuzzy: {fuzzyIndex:.2f}"
-            return salida                
+            for tupla in generacionOrdenada:
+                diccionario = tupla[0]
+                palabra = next(iter(diccionario)) #Hace lo mismo que: list(diccionario.keys())[0]
+                scoring = self.evaluarCodeEnTupla(tupla)
+                fuzzyIndex = tupla[1]
+                if scoring >= 1:
+                    salida += f"\n  - {BOLD}{palabra}{RESET} | Code: {scoring} | Fuzzy: {fuzzyIndex:.2f}"
+                else:
+                    salida += f"\n  - {palabra} | Code: {scoring} | Fuzzy: {fuzzyIndex:.2f}"
+        
+        return salida
+
+    def mostrarEstadistica(self):
+        df = pd.DataFrame(self.resumenEstadistico, columns=["fuzzyIndex", "cantidad"])
+        print(df.describe())
+
+    def graficarEstadistica(self):
+        df = pd.DataFrame(self.resumenEstadistico, columns=["fuzzyIndex", "cantidad"])
+        df["generacion"] = df.index + 1
+        
+        plt.figure(figsize=(10, 5))
+        #plt.scatter(x,y)
+        plt.scatter(df["generacion"], df["fuzzyIndex"], color="blue", label="Índice Fuzzy promedio")
+        plt.scatter(df["generacion"], df["cantidad"], color="green", label="Cantidad de Palabras Buenas")
+        plt.xlabel("Generación")
+        plt.ylabel("Valores")
+        plt.title("Evolución del Índice Fuzzy y la cantidad de mejores candidatas por cada generación")
+        plt.legend()
+        plt.grid(True)
+        plt.xticks(df["generacion"])  # fuerza a mostrar solo los valores enteros del índice
+        plt.tight_layout()
+        plt.show()
 
 #METODOS DE JUEGO Y ADAPTACION
     def controlar(self):
         """
-        Retorna un diccionario con la proporción de uso de cada estrategia
-        basada en el ciclo actual, el progreso de fuzzyIndex y mejoresPalabras.
+        El controlador devuelve un diccionario con la proporción de aplicación de cada método de generación de palabras
+        Se basa en la evolución de las variables que se almacenan por fuera de cada generación:
+        self.fuzzyIndexGeneracion = []
+        self.mejoresPalabras = []
         """
         # Ciclo 0: todo aleatorio
         if self.ciclo == 0:
-            return {
-                "aleatoria": 1.0, "ponderada": 0.0, "wordle": 0.0
-            }
+            return {"aleatoria": 1.0, "ponderada": 0.0, "wordle": 0.0}
 
         fuzzy_actual = self.fuzzyIndexGeneracion[-1] if self.fuzzyIndexGeneracion else 0
         fuzzy_anterior = self.fuzzyIndexGeneracion[-2] if len(self.fuzzyIndexGeneracion) > 1 else 0
@@ -248,33 +283,23 @@ class wordGesser:
         # Ciclo 1
         if self.ciclo == 1:
             if fuzzy_actual == 0:
-                return { 
-                    "aleatoria": 1.0, "ponderada": 0.0, "wordle": 0.0
-                }
+                return {"aleatoria": 1.0, "ponderada": 0.0, "wordle": 0.0}
             elif cantidadMejores >= 1:
-                return {
-                    "aleatoria": 0.75, "ponderada": 0.15, "wordle": 0.10
-                }
+                return { "aleatoria": 0.75, "ponderada": 0.15, "wordle": 0.10}
 
         # Ciclos posteriores
         if fuzzy_actual > fuzzy_anterior: #Si mejora el fuzzy.ratio de la generacion
             cantidadMejoresPalabras = len(self.mejoresPalabras)
             cantidadPalabrasUnicas = len(set([list(tupla[0].keys())[0] for tupla in self.mejoresPalabras]))
             if cantidadMejoresPalabras == cantidadPalabrasUnicas:
-                # Aumenta el fuzzyIndex, pero no crecen los buenos resultados
-                return {
-                    "aleatoria": 0.65, "ponderada": 0.25, "wordle": 0.10
-                }
+                # Aumenta el fuzzyIndex, pero no aumentan las palabras nuevas entre las mejores
+                return {"aleatoria": 0.65, "ponderada": 0.25, "wordle": 0.10}
             else:
                 # Aumenta fuzzyIndex y también aparecen más buenas
-                return {
-                    "aleatoria": 0.50, "ponderada": 0.25, "wordle": 0.25
-                }
+                return {"aleatoria": 0.50, "ponderada": 0.25, "wordle": 0.25}
 
         # Si el fuzzyIndex no mejora y no hay nuevas buenas
-        return {
-            "aleatoria": 0.80, "ponderada": 0.10, "wordle": 0.10
-        }
+        return {"aleatoria": 0.80, "ponderada": 0.10, "wordle": 0.10}
 
     def jugar(self):
         print("🎯 BIENVENIDO AL JUEGO DE ADIVINAR LA PALABRA 🎯")
@@ -293,15 +318,15 @@ class wordGesser:
             if self.palabraTarget in palabrasGeneradas:
                 print(f"\n🎉 ¡La palabra {self.palabraTarget.upper()} fue adivinada en el ciclo {self.ciclo + 1}!")
                 print("Promedios FUZZY por generación: ", self.fuzzyIndexGeneracion)
-                break
-                
+                break  
             self.ciclo += 1
-
         else:
             print(f"\n🧪 Se alcanzó el límite de ciclos. La palabra era: {self.palabraTarget.upper()}")
 
         # Mostrar resumen final
         print(self)
+        self.mostrarEstadistica()
+        self.graficarEstadistica() 
 
 ###########################################################################################
 # FIN DE LA CLASE #
