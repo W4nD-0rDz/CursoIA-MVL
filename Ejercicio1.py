@@ -105,6 +105,7 @@ menuUsuario = {
     "4": ("Graficar", verGrafico),
     "0": ("Salir", salir)
 }
+
 #Función que muestra el diccionario menu
 def mostrarMenuUsuario():
     for opcion, (descripcion, _) in menuUsuario.items():

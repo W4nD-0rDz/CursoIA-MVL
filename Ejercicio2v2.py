@@ -272,6 +272,9 @@ class wordGesser:
         self.fuzzyIndexGeneracion = []
         self.mejoresPalabras = []
         """
+        
+
+
         # Ciclo 0: todo aleatorio
         if self.ciclo == 0:
             return {"aleatoria": 1.0, "ponderada": 0.0, "wordle": 0.0}
