@@ -109,16 +109,6 @@ print(matriz)
 #         plt.show()
 
 
-
-
-
-
-
-
-
-
-
-
 ########################################################################################################################################
 #Python también puede crear el dibujo (en este caso muy simple)
 # # 1. Crear imagen blanca de 100x100 píxeles
@@ -157,5 +147,17 @@ print(matriz)
 # img.save("imagenes/simples/circulo_gris64.png")
 ########################################################################################################################################
 
-
+#Bucle ver_todos()
+# def ver_todos()
+#     posicion=1
+#     for i in lista:
+#         plt.subplot(2,6,posicion)
+#         img=npimg.read("fotos/"+i[2]+ " " + i[1]+ ".jpg")
+#         plt.imshow(img)
+#         plt.axis("off")
+#         posicion =+1
+#         if i[0]==11:
+#             break
+#     plt.show()
+#     menu()
 
