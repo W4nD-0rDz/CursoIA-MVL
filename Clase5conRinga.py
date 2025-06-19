@@ -4,8 +4,13 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 
+#Red neuronal básica.
+#https://www.youtube.com/watch?v=iX_on3VxZzk&list=PLZ8REt5zt2Pn0vfJjTAPaDVSACDvnuGiG&index=1
 #El ejemplo consiste en un conversor de °C a °F
+#Problema de REGRESION (estima un dato "futuro", en base a una serie de datos "anteriores") estadística
 #Machine Learning con TensorFlow y NumPy (librerías de Py) y Keras
+#Funciones de activación: https://www.youtube.com/watch?v=_0wdproot34&list=PLZ8REt5zt2Pn0vfJjTAPaDVSACDvnuGiG&index=8
+
 #capa entrada = °C
 celsius = np.array([-40, -10, 0, 8, 15, 22, 38],dtype=float)
 #capa salida = °F
