@@ -8,6 +8,7 @@ Semáforo en verde - Avanzar!
 
 import tensorflow as tf
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' #Reduce el "ruido" en la consola
 import numpy as np
 import cv2
 from sklearn.model_selection import train_test_split
@@ -197,10 +198,11 @@ class EvaluadorSemaforo:
             clase, probabilidad = self.predecir_color(ruta)
 
             mensaje = {
-                "rojo": "Semáforo en rojo! - Detenerse!",
-                "amarillo": "Semáforo en amarillo - Atención!",
-                "verde": "Semáforo en verde - Avanzar!"
-            }.get(clase, "Color no reconocido")
+                "rojo": "🔴 Semáforo en rojo! - Detenerse!",
+                "amarillo": "🟡 Semáforo en amarillo - Atención!",
+                "verde": "🟢 Semáforo en verde - Avanzar!"
+            }.get(clase, "⚪ Color no reconocido")
+
             
             print(f"[{clase.upper()} - {probabilidad*100:1f}%] {mensaje}")
 
@@ -392,11 +394,11 @@ if __name__ == "__main__":
     # clasificador.entrenar_modelo(carpeta_datos="imagenes/semaforo/imagenes_aumentadas", epochs=48)
     # clasificador.guardar_modelo("modelo_clasificador_color_semaforo.keras")
 
-    # evaluador = EvaluadorSemaforo("modelo_clasificador_color_semaforo.keras")
-    # evaluador.ejecutar_bucle("imagenes/semaforo", repeticiones=10, intervalo=2)
+    evaluador = EvaluadorSemaforo("modelo_clasificador_color_semaforo.keras")
+    evaluador.ejecutar_bucle("imagenes/semaforo", repeticiones=10, intervalo=2)
     
-    visor = VisualizadorColor("modelo_clasificador_color_semaforo.keras")
+    # visor = VisualizadorColor("modelo_clasificador_color_semaforo.keras")
     #visor.convertir_y_renombrar_imagenes()
-    visor.ejecutar(ciclos=3, intervalo=10)
-    #visor.testear_imagenes()
+    # visor.ejecutar(ciclos=3, intervalo=10)
+    # visor.testear_imagenes()
 
